@@ -241,33 +241,83 @@ def generate_readme(skill_dir, name, desc, github_user):
 
     readme = f"""# {name}
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-purple.svg)
+
 > {tagline}
 
-## 安装
+## ✨ 核心特性
+
+<!-- TODO: 用 3-5 个要点说明这个 skill 的核心价值 -->
+- 🚀 **特性 1**：描述第一个核心能力
+- 🎯 **特性 2**：描述第二个核心能力
+- 💡 **特性 3**：描述第三个核心能力
+
+## 📦 安装
 
 ```bash
 npx skills add {github_user}/{name}
 ```
 
-## 前置要求
+## 📋 前置要求
 
 <!-- TODO: 填写该 Skill 所需的前置条件（工具、账号、配置等） -->
-- Claude Code 已安装
-- （在此补充其他依赖）
+- [ ] Claude Code 已安装
+- [ ] （在此补充其他依赖，如 Python 3.9+、特定 CLI 工具等）
 
-## 使用方式
+## 🚀 快速开始
 
-安装后，在 Claude Code 中用自然语言描述你的需求即可，例如：
+安装后，在 Claude Code 中用自然语言描述你的需求即可。
 
-<!-- TODO: 填写 2-3 个典型的自然语言触发示例 -->
+### 💡 使用场景
+
+<!-- TODO: 填写 2-3 个真实的使用场景，展示"我想做什么" → "AI 怎么做" -->
+
+**场景 1：[场景名称]**
 ```
-"..."
-"..."
+你说："[用户的自然语言输入]"
+AI 做：[AI 的具体操作步骤]
+```
+
+**场景 2：[场景名称]**
+```
+你说："[用户的自然语言输入]"
+AI 做：[AI 的具体操作步骤]
 ```
 
 {user_body}
 
-## License
+## 🏗️ 工作原理
+
+<!-- TODO: 如果 skill 逻辑复杂，可以添加 Mermaid 架构图 -->
+```mermaid
+graph LR
+    A[用户输入] --> B[Skill 解析]
+    B --> C[调用工具/API]
+    C --> D[处理结果]
+    D --> E[返回用户]
+```
+
+## ❓ 常见问题
+
+<!-- TODO: 填写 3-5 个用户可能遇到的问题和解决方案 -->
+
+### Q: [问题 1]
+**A:** [解决方案]
+
+### Q: [问题 2]
+**A:** [解决方案]
+
+### Q: [问题 3]
+**A:** [解决方案]
+
+## 🔒 隐私说明
+
+<!-- TODO: 如果涉及数据上传、API 调用，说明数据处理方式 -->
+- 本地处理：[哪些操作在本地完成]
+- 外部调用：[哪些数据会发送到外部服务]
+
+## 📝 License
 
 MIT
 
