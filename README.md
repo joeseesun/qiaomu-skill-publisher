@@ -159,12 +159,63 @@ description: |
 ### README 必须包含的要素
 
 - [ ] **价值主张**：第一段说清楚能解决什么问题
+- [ ] **首屏证据**：产品截图、输出样例、真实生成物或短 Demo 放在第一屏附近
+- [ ] **动态可信信号**：GitHub stars、forks、issues、last commit、license、deploy/install 按钮放在顶部
 - [ ] **前置条件清单**：checkbox 格式，每条说明怎么装
 - [ ] **完整安装步骤**：编号步骤，每步有验证命令
 - [ ] **自然语言使用示例**：2-3 个用户真实会说的句子
 - [ ] **致谢原作者**：基于第三方工具时必须注明
 - [ ] **风险/限制说明**：写操作、账号、费用相关的风险
 - [ ] **常见问题/Troubleshooting**：至少 3 个常见报错和解决方法
+
+### Web 项目发布页标准
+
+参考 `nexu-io/open-design` 这类高转化 README，Web 项目要像产品发布页一样给用户一个可判断的首屏，而不是只给安装命令。
+
+推荐首屏顺序：
+
+1. 项目名 + 一句话 Hook
+2. 主要 CTA：`Deploy with Vercel` / Live Demo / Install，按钮使用真实仓库 URL
+3. GitHub 动态徽章：stars、forks、issues、last commit、license、build 状态
+4. 产品截图：`docs/assets/product-screenshot.png`
+5. 3-6 个核心功能点
+
+Web 项目必须优先补齐：
+
+- [ ] `docs/assets/product-screenshot.png`：首屏或核心工作流截图
+- [ ] `docs/assets/` 下的样例输出：例如图片生成网站放 3-6 个代表性生成图
+- [ ] README 中的样例表格：展示输入、输出、关键差异或使用场景
+- [ ] `scripts/capture-screenshots.*` 或等价命令：本地启动网站后自动刷新 README 截图
+- [ ] 部署说明：Vercel/Netlify/Docker 等入口必须使用真实仓库 URL 和最少步骤
+- [ ] Star History：适合公开传播的项目可加入 `api.star-history.com` 图表
+
+推荐 README 模块：
+
+```markdown
+# Project Name
+
+> 一句话说明用户会得到什么。
+
+[Deploy with Vercel] [Live Demo] [Stars] [Forks] [Last commit] [License]
+
+<img src="docs/assets/product-screenshot.png" alt="..." />
+
+## 为什么值得用
+## 样例输出
+## 一键部署
+## 本地开发
+## 自动更新截图
+## 数据/生成流程
+## Star History
+## Troubleshooting
+```
+
+自动截图要求：
+
+- 有前端 UI 的项目，优先用 Playwright/Puppeteer 生成 README 截图，不手工截屏
+- 截图脚本应允许通过环境变量指定 URL，例如 `SCREENSHOT_URL=http://127.0.0.1:3000 npm run capture:screenshots`
+- 截图文件放进 `docs/assets/`，README 使用相对路径引用
+- 截图脚本是发布资产生成，不等同于完整 E2E 测试
 
 ## ❓ 常见问题
 

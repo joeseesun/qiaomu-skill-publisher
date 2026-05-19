@@ -99,12 +99,62 @@ description: |
 ### README 必须包含的 7 个要素
 
 1. **价值主张（Hook）**：第一段就让用户明白"这能解决我什么问题"，用具体场景描述，避免抽象描述
-2. **前置条件清单（checkbox 格式）**：用 `- [ ]` 列出所有依赖，让用户逐一确认。每条都要写清楚怎么装，不能只说"需要 xxx"
-3. **完整安装步骤**：编号步骤，细到小白能跟着做。每步都提供验证命令（如 `--version`）
-4. **自然语言使用示例**：展示 2-3 个用户会真实说出的句子，让人一眼看懂怎么触发
-5. **致谢原作者**：如果 skill 基于第三方工具/库，必须注明原项目链接和作者
-6. **必要的风险/限制说明**：写操作、账号相关、费用相关的风险需明确告知
-7. **常见问题/Troubleshooting**：至少列出 3 个常见报错和解决方法，降低用户放弃率
+2. **首屏证据**：产品截图、输出样例、真实生成物或短 Demo 必须出现在 README 第一屏附近；Web 项目优先放完整产品截图
+3. **动态可信信号**：GitHub stars、forks、issues、last commit、license、deploy/install 按钮等徽章要放在顶部；适合公开传播的项目加 Star History
+4. **前置条件清单（checkbox 格式）**：用 `- [ ]` 列出所有依赖，让用户逐一确认。每条都要写清楚怎么装，不能只说"需要 xxx"
+5. **完整安装步骤**：编号步骤，细到小白能跟着做。每步都提供验证命令（如 `--version`）
+6. **自然语言使用示例**：展示 2-3 个用户真实会说的句子，让人一眼看懂怎么触发
+7. **致谢原作者**：如果 skill 基于第三方工具/库，必须注明原项目链接和作者
+8. **必要的风险/限制说明**：写操作、账号相关、费用相关的风险需明确告知
+9. **常见问题/Troubleshooting**：至少列出 3 个常见报错和解决方法，降低用户放弃率
+
+### Web 项目 README 发布标准
+
+参考 `nexu-io/open-design` 这类高转化 README，Web 项目不能只写安装命令，必须像产品发布页一样给用户一个可判断的首屏。
+
+**首屏顺序建议**：
+
+1. 项目名 + 一句话 Hook
+2. 主要 CTA：`Deploy with Vercel` / Live Demo / Install，按钮要能直接用真实仓库 URL
+3. GitHub 动态徽章：stars、forks、issues、last commit、license、build 状态（如果有）
+4. 产品截图：`docs/assets/product-screenshot.png`，alt 写清楚截图内容
+5. 3-6 个核心功能点，不写泛泛的"高效/现代/优雅"
+
+**Web 项目必须优先补齐**：
+
+- `docs/assets/product-screenshot.png`：首屏或核心工作流截图
+- `docs/assets/` 下的样例输出：如图片生成网站放 3-6 个代表性生成图
+- README 中的样例表格：展示输入、输出、关键差异或使用场景
+- `scripts/capture-screenshots.*` 或等价命令：能本地启动网站后自动刷新 README 截图
+- 部署说明：Vercel/Netlify/Docker 等入口必须使用真实仓库 URL 和最少步骤
+
+**推荐 README 模块**：
+
+```markdown
+# Project Name
+
+> 一句话说明用户会得到什么。
+
+[Deploy with Vercel] [Live Demo] [Stars] [Forks] [Last commit] [License]
+
+<img src="docs/assets/product-screenshot.png" alt="..." />
+
+## 为什么值得用
+## 样例输出
+## 一键部署
+## 本地开发
+## 自动更新截图
+## 数据/生成流程
+## Star History
+## Troubleshooting
+```
+
+**自动截图要求**：
+
+- 有前端 UI 的项目，优先用 Playwright/Puppeteer 生成 README 截图，不手工截屏
+- 截图脚本应允许通过环境变量指定 URL，例如 `SCREENSHOT_URL=http://127.0.0.1:3000 npm run capture:screenshots`
+- 截图文件放进 `docs/assets/`，README 使用相对路径引用
+- 截图脚本是发布资产生成，不等同于功能验收；除非用户要求，否则不要把它包装成完整 E2E 测试
 
 ### 语言原则
 
@@ -147,20 +197,22 @@ description: |
 
 3. **具体输出预览**：告诉用户他会得到什么。不要说"生成报告"，要说"生成一个 Medium 杂志风格的 HTML 报告，有每个视角的推理过程，有讨论中发现的盲点，有一个加粗的最终判断"。
 
-4. **一行安装**：最低摩擦。不要说"先 clone 再 cd 再 npm install"。
+4. **首屏截图或样例**：让用户先看到真实结果，再决定是否继续读。Web 项目放产品截图，生成类项目放代表性输出，CLI/Skill 放实际终端输出或生成文档片段。
+
+5. **一行安装**：最低摩擦。不要说"先 clone 再 cd 再 npm install"。
    ```bash
    npx skills add username/skill-name
    ```
 
-5. **自然语言触发示例**：让用户知道怎么用。不是命令，是他会真实说出的话。
+6. **自然语言触发示例**：让用户知道怎么用。不是命令，是他会真实说出的话。
    - "讨论一下 React vs Vue"
    - "think harder: 微服务还是单体架构"
 
-6. **前置条件清单（checkbox 格式）**：放在安装之后，不要放开头吓人。用 `- [ ]` 格式让用户逐项确认。
+7. **前置条件清单（checkbox 格式）**：放在安装之后，不要放开头吓人。用 `- [ ]` 格式让用户逐项确认。
 
-7. **输出示例或截图**：有条件的话展示实际输出，哪怕是文字描述也比没有强。
+8. **动态项目状态**：公开 GitHub 项目顶部放 stars/forks/issues/last commit/license 徽章；有增长叙事时补 Star History。
 
-8. **Troubleshooting 表格**：至少 3 条，解决用户放弃的最后一公里。
+9. **Troubleshooting 表格**：至少 3 条，解决用户放弃的最后一公里。
 
 **让人想装的写作要领**：
 - 短句。每个 idea 一行，不要堆在同一段。
@@ -175,6 +227,9 @@ description: |
 - [ ] 第一句话是痛点，不是功能描述
 - [ ] 有"用了之后"的具体场景描述
 - [ ] 安装命令一行搞定，放在显眼位置
+- [ ] Web 项目有首屏产品截图，生成类项目有代表性输出样例
+- [ ] GitHub 项目顶部有动态徽章，公开项目有 Star History 或 repo 活跃度入口
+- [ ] Web 项目有自动截图命令，截图在 `docs/assets/`
 - [ ] 前置条件用 checkbox 格式，每条说明怎么安装
 - [ ] 使用示例是用户真实会说的话，不是技术命令
 - [ ] 有 Troubleshooting 表格（问题 → 解决方法）
@@ -187,6 +242,8 @@ description: |
 - ❌ 前置要求放开头，吓跑用户
 - ❌ 安装步骤超过 3 步（如果超过了，说明你没想清楚怎么简化）
 - ❌ 没有 Troubleshooting，用户遇到问题只能自己摸索
+- ❌ Web 项目没有截图，或者截图过期、无法复现
+- ❌ Deploy 按钮仍指向 `your-org/your-repo` 这类占位 URL
 
 ### 发布工作流
 

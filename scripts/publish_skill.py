@@ -241,10 +241,30 @@ def generate_readme(skill_dir, name, desc, github_user):
 
     readme = f"""# {name}
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-purple.svg)
+<p align="center">
+  <a href="https://github.com/{github_user}/{name}/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{name}/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{name}/issues"><img alt="Issues" src="https://img.shields.io/github/issues/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{name}/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/{github_user}/{name}?style=for-the-badge&logo=git" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge" /></a>
+</p>
 
 > {tagline}
+
+```bash
+npx skills add {github_user}/{name}
+```
+
+<!--
+发布前请把下面的占位内容替换成真实证据：
+- Skill/CLI：放终端输出、生成文档片段或 before/after 示例
+- Web 项目：放 docs/assets/product-screenshot.png 和 3-6 个样例输出
+- 公开项目：保留顶部动态徽章，并可补 Star History
+
+<p align="center">
+  <img src="docs/assets/product-screenshot.png" alt="{name} product screenshot" width="100%" />
+</p>
+-->
 
 ## ✨ 核心特性
 
@@ -255,9 +275,7 @@ def generate_readme(skill_dir, name, desc, github_user):
 
 ## 📦 安装
 
-```bash
-npx skills add {github_user}/{name}
-```
+上面的一行命令即可安装。安装后，在 Claude Code 中用自然语言描述你的需求。
 
 ## 📋 前置要求
 
@@ -286,6 +304,16 @@ AI 做：[AI 的具体操作步骤]
 ```
 
 {user_body}
+
+## 🖼️ 发布资产建议
+
+如果这个仓库包含 Web UI、生成式输出或可视化结果，发布前请补齐：
+
+- `docs/assets/product-screenshot.png`：首屏或核心工作流截图
+- `docs/assets/` 下的代表性输出样例
+- `scripts/capture-screenshots.*`：自动刷新 README 截图，支持 `SCREENSHOT_URL`
+- README 样例表格：展示输入、输出和差异
+- Star History：公开项目可使用 `https://api.star-history.com/svg?repos={github_user}/{name}&type=Date`
 
 ## 🏗️ 工作原理
 
