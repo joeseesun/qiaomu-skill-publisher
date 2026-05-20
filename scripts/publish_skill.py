@@ -21,6 +21,7 @@ import subprocess
 import argparse
 import json
 import datetime
+import shutil
 
 
 def run(cmd, capture=True, check=True, cwd=None):
@@ -434,31 +435,36 @@ def verify_skill(github_user, name):
     return False, f"skill 名称 '{name}' 未出现在输出中"
 
 
-def create_agent_symlink(skill_dir, name):
-    """Create/update a symlink in ~/.agents/skills/<name> pointing to the skill directory.
+def sync_agent_skill(skill_dir, name):
+    """Copy/update a skill into ~/.agents/skills/<name> as real files.
 
-    ~/.agents/skills/ is the universal skills directory recognized by Codex, OpenCode,
-    Cursor, Gemini CLI, GitHub Copilot, Amp, Cline, and more.
-
-    Returns: ("created" | "updated" | "skipped", message)
+    This keeps the local agent skill tree as the canonical on-disk mirror instead of
+    a symlink, so future edits can live there as实体 files.
     """
     agents_dir = os.path.expanduser("~/.agents/skills")
     os.makedirs(agents_dir, exist_ok=True)
-    link_path = os.path.join(agents_dir, name)
+    target_path = os.path.join(agents_dir, name)
     target = os.path.abspath(skill_dir)
+    backup_path = None
 
-    if os.path.islink(link_path):
-        current = os.readlink(link_path)
-        if current == target:
-            return "skipped", f"symlink 已存在且指向正确: {link_path}"
-        os.unlink(link_path)
-        os.symlink(target, link_path)
-        return "updated", f"{link_path} → {target}"
-    elif os.path.exists(link_path):
-        return "skipped", f"~/.agents/skills/{name} 已存在且不是 symlink，跳过（请手动处理）"
-    else:
-        os.symlink(target, link_path)
-        return "created", f"{link_path} → {target}"
+    if os.path.islink(target_path):
+        backup_path = os.readlink(target_path)
+        os.unlink(target_path)
+    elif os.path.isdir(target_path):
+        shutil.rmtree(target_path)
+    elif os.path.exists(target_path):
+        os.remove(target_path)
+
+    shutil.copytree(
+        target,
+        target_path,
+        ignore=shutil.ignore_patterns(".git", ".DS_Store"),
+        dirs_exist_ok=False,
+    )
+
+    if backup_path:
+        return "updated", f"{target_path} 已从 symlink 迁移为实体目录，来源: {target}"
+    return "created", f"{target_path} ← {target}"
 
 
 def main():
@@ -540,15 +546,15 @@ def main():
             print(f"❌ 验证失败: {verify_err}", file=sys.stderr)
             print("   请检查 SKILL.md frontmatter，修复后重新运行脚本更新", file=sys.stderr)
 
-    # Step 8: Create ~/.agents/skills/ symlink
+    # Step 8: Sync ~/.agents/skills/实体目录
     if not args.no_symlink:
-        status, msg = create_agent_symlink(skill_dir, name)
+        status, msg = sync_agent_skill(skill_dir, name)
         if status == "created":
-            print(f"\n🔗 已创建 Agent symlink: {msg}")
+            print(f"\n📁 已同步 Agent skill: {msg}")
         elif status == "updated":
-            print(f"\n🔗 已更新 Agent symlink: {msg}")
+            print(f"\n📁 已更新 Agent skill: {msg}")
         else:
-            print(f"\nℹ️  Agent symlink: {msg}")
+            print(f"\nℹ️  Agent skill: {msg}")
 
     # Summary
     print(f"\n{'='*60}")
