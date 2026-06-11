@@ -22,6 +22,7 @@ import argparse
 import json
 import datetime
 import shutil
+import tempfile
 
 
 def run(cmd, capture=True, check=True, cwd=None):
@@ -103,6 +104,23 @@ def parse_yaml_frontmatter(skill_md_path):
 def get_github_user():
     """Get current GitHub username."""
     return run("gh api user --jq '.login'")
+
+
+def get_origin_repo(skill_dir):
+    """Return (owner, repo) parsed from git origin, if present."""
+    remote = run("git remote get-url origin 2>/dev/null", cwd=skill_dir, check=False)
+    if not remote:
+        return None, None
+
+    patterns = [
+        r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?$",
+        r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?$",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, remote)
+        if match:
+            return match.group("owner"), match.group("repo")
+    return None, None
 
 
 def validate_skill(skill_dir):
@@ -217,20 +235,11 @@ def extract_user_facing_sections(body):
     return "\n".join(result_lines).strip()
 
 
-def generate_readme(skill_dir, name, desc, github_user):
+def generate_readme(skill_dir, name, repo_name, desc, github_user):
     """Generate README.md from SKILL.md content."""
     readme_path = os.path.join(skill_dir, "README.md")
     if os.path.exists(readme_path):
         return False
-
-    # Read SKILL.md body (after frontmatter)
-    skill_md = os.path.join(skill_dir, "SKILL.md")
-    with open(skill_md, "r") as f:
-        content = f.read()
-    raw_body = re.sub(r"^---\s*\n.*?\n---\s*\n", "", content, flags=re.DOTALL).strip()
-
-    # Extract user-facing content (strip AI-only sections)
-    user_body = extract_user_facing_sections(raw_body)
 
     # Build tagline from description (first sentence)
     if "。" in desc:
@@ -240,130 +249,157 @@ def generate_readme(skill_dir, name, desc, github_user):
     else:
         tagline = desc[:120]
 
-    readme = f"""# {name}
+    readme = f"""# {repo_name}
 
 <p align="center">
-  <a href="https://github.com/{github_user}/{name}/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
-  <a href="https://github.com/{github_user}/{name}/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
-  <a href="https://github.com/{github_user}/{name}/issues"><img alt="Issues" src="https://img.shields.io/github/issues/{github_user}/{name}?style=for-the-badge&logo=github" /></a>
-  <a href="https://github.com/{github_user}/{name}/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/{github_user}/{name}?style=for-the-badge&logo=git" /></a>
+  <a href="https://github.com/{github_user}/{repo_name}/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/{github_user}/{repo_name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{repo_name}/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/{github_user}/{repo_name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{repo_name}/issues"><img alt="Issues" src="https://img.shields.io/github/issues/{github_user}/{repo_name}?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/{github_user}/{repo_name}/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/{github_user}/{repo_name}?style=for-the-badge&logo=git" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge" /></a>
 </p>
 
 > {tagline}
+> Install this agent skill with one command, then trigger it with natural language in Codex, Claude Code, or another skills-compatible agent.
 
 ```bash
-npx skills add {github_user}/{name}
+npx skills add {github_user}/{repo_name}
 ```
 
-<!--
-发布前请把下面的占位内容替换成真实证据：
-- Skill/CLI：放终端输出、生成文档片段或 before/after 示例
-- Web 项目：放 docs/assets/product-screenshot.png 和 3-6 个样例输出
-- 公开项目：保留顶部动态徽章，并可补 Star History
+**中文** | [English](#english)
 
-<p align="center">
-  <img src="docs/assets/product-screenshot.png" alt="{name} product screenshot" width="100%" />
-</p>
--->
+## 为什么值得用
 
-## ✨ 核心特性
+很多 skill 发布失败，不是功能不够好。
 
-<!-- TODO: 用 3-5 个要点说明这个 skill 的核心价值 -->
-- 🚀 **特性 1**：描述第一个核心能力
-- 🎯 **特性 2**：描述第二个核心能力
-- 💡 **特性 3**：描述第三个核心能力
+而是 README 太像内部说明、安装路径不清、YAML frontmatter 有坑，或者发布后没有验证能不能被 `npx skills add` 发现。
 
-## 📦 安装
+这个 skill 会把可复用工作流包装成一个公开可安装的 agent skill，并把发布结果验证到可复制安装命令为止。
 
-上面的一行命令即可安装。安装后，在 Claude Code 中用自然语言描述你的需求。
+## 你会得到
 
-## 📋 前置要求
+- 一个带 `SKILL.md`、README、LICENSE 的 GitHub 仓库
+- 严格 YAML frontmatter 校验
+- README 发布页，不是内部指令转储
+- `npx skills add` 可发现性和真实安装验证
+- 本地 `~/.agents/skills` 兼容同步
+- 清楚的仓库 URL、安装命令和验证结果
 
-<!-- TODO: 填写该 Skill 所需的前置条件（工具、账号、配置等） -->
-- [ ] Claude Code 已安装
-- [ ] （在此补充其他依赖，如 Python 3.9+、特定 CLI 工具等）
+## 安装
 
-## 🚀 快速开始
-
-安装后，在 Claude Code 中用自然语言描述你的需求即可。
-
-### 💡 使用场景
-
-<!-- TODO: 填写 2-3 个真实的使用场景，展示"我想做什么" → "AI 怎么做" -->
-
-**场景 1：[场景名称]**
-```
-你说："[用户的自然语言输入]"
-AI 做：[AI 的具体操作步骤]
+```bash
+npx skills add {github_user}/{repo_name}
 ```
 
-**场景 2：[场景名称]**
-```
-你说："[用户的自然语言输入]"
-AI 做：[AI 的具体操作步骤]
-```
+安装后确认：
 
-{user_body}
-
-## 🖼️ 发布资产建议
-
-如果这个仓库包含 Web UI、生成式输出或可视化结果，发布前请补齐：
-
-- `docs/assets/product-screenshot.png`：首屏或核心工作流截图
-- `docs/assets/` 下的代表性输出样例
-- `scripts/capture-screenshots.*`：自动刷新 README 截图，支持 `SCREENSHOT_URL`
-- README 样例表格：展示输入、输出和差异
-- Star History：公开项目可使用 `https://api.star-history.com/svg?repos={github_user}/{name}&type=Date`
-
-## 🏗️ 工作原理
-
-<!-- TODO: 如果 skill 逻辑复杂，可以添加 Mermaid 架构图 -->
-```mermaid
-graph LR
-    A[用户输入] --> B[Skill 解析]
-    B --> C[调用工具/API]
-    C --> D[处理结果]
-    D --> E[返回用户]
+```bash
+test -f ~/.agents/skills/{name}/SKILL.md
 ```
 
-## ❓ 常见问题
+## 你可以这样说
 
-<!-- TODO: 填写 3-5 个用户可能遇到的问题和解决方案 -->
+- "把这个 skill 发布到 GitHub。"
+- "先检查一下这个 skill 能不能发布。"
+- "重写 README，让它更像公开产品页，然后发布。"
+- "更新已发布的 skill，并验证 npx skills add 可安装。"
 
-### Q: [问题 1]
-**A:** [解决方案]
+## 前置要求
 
-### Q: [问题 2]
-**A:** [解决方案]
+- [ ] 已安装 GitHub CLI：`brew install gh`
+- [ ] 已登录 GitHub CLI：`gh auth status`
+- [ ] 已安装 Python 3.9+
+- [ ] skill 目录包含有效的 `SKILL.md`
+- [ ] 公开发布前已检查 README 中没有密钥、私有路径或内部账号信息
 
-### Q: [问题 3]
-**A:** [解决方案]
+## Skill 摘要
 
-## 🔒 隐私说明
+{desc}
 
-<!-- TODO: 如果涉及数据上传、API 调用，说明数据处理方式 -->
-- 本地处理：[哪些操作在本地完成]
-- 外部调用：[哪些数据会发送到外部服务]
+## 发布质量检查
 
-## 📝 License
+发布前至少确认：
+
+- README 第一屏说清楚用户痛点和安装命令
+- README 有真实使用示例，不只是参数说明
+- README 没有 `TODO`、`特性 1`、`[问题 1]` 这类占位符
+- 如果 repo 已经有 `origin`，发布目标使用现有仓库名，而不是误用 skill name
+- 发布后通过 `npx skills add {github_user}/{repo_name} --list`
+- 最好再做一次临时目录真实安装
+
+## Troubleshooting
+
+| 问题 | 原因 | 解决方法 |
+|---|---|---|
+| `gh` 不可用 | GitHub CLI 没装或没登录 | 运行 `brew install gh && gh auth login` |
+| `npx skills add` 找不到 skill | `SKILL.md` frontmatter 无效或 repo/path 错误 | 先运行发布脚本 dry-run，修复 YAML |
+| 发布到了错误仓库 | skill name 和 repo name 混用 | 使用现有 `origin`，或传 `--repo-name` |
+| README 看起来像内部文档 | 直接复制了 `SKILL.md` | 重写成痛点、样例、安装、风险和排障结构 |
+| 本地 `.agents` 被重复复制 | 从非规范目录发布但自动同步开启 | 使用 `--no-symlink` 或先确认目标目录 |
+
+## License
 
 MIT
 
-## 📱 关注作者
+Copyright (c) 向阳乔木  
+X: https://x.com/vista8  
+GitHub: https://github.com/joeseesun/
 
-如果这个项目对你有帮助，欢迎关注我获取更多 AI 工具分享：
+<a name="english"></a>
+## English
 
-- **X (Twitter)**: [@vista8](https://x.com/vista8)
-- **微信公众号「向阳乔木推荐看」**:
+{repo_name} packages and publishes an agent skill to GitHub, then verifies that it can be discovered and installed through `npx skills add`.
 
-<p align="center">
-  <img src="https://github.com/joeseesun/terminal-boost/raw/main/assets/wechat-qr.jpg?raw=true" alt="向阳乔木推荐看公众号二维码" width="300">
-</p>
+Install:
+
+```bash
+npx skills add {github_user}/{repo_name}
+```
+
+It focuses on:
+
+- strict `SKILL.md` YAML validation
+- GitHub repository creation or update
+- product-page README guidance
+- repo-name and skill-name separation
+- `npx skills add` discovery and install verification
+- safe local agent-skill sync
+
+Copyright (c) 向阳乔木  
+X: https://x.com/vista8  
+GitHub: https://github.com/joeseesun/
 """
     with open(readme_path, "w") as f:
         f.write(readme)
     return True
+
+
+def check_readme_quality(skill_dir):
+    """Block obvious placeholder READMEs before publishing."""
+    readme_path = os.path.join(skill_dir, "README.md")
+    if not os.path.exists(readme_path):
+        return []
+
+    with open(readme_path, "r") as f:
+        content = f.read()
+
+    placeholder_patterns = [
+        r"<!--\s*TODO",
+        r"特性\s*1[：:]描述",
+        r"场景\s*1[：:]\[场景名称\]",
+        r"你说[：:]\"\[用户的自然语言输入\]\"",
+        r"AI 做[：:]\[AI 的具体操作步骤\]",
+        r"Q:\s*\[问题\s*\d+\]",
+        r"\*\*A:\*\*\s*\[解决方案\]",
+        r"your-org/your-repo",
+        r"docs/assets/product-screenshot\.png",
+        r"（在此补充",
+    ]
+    errors = []
+    for pattern in placeholder_patterns:
+        if re.search(pattern, content, flags=re.IGNORECASE):
+            errors.append(f"README.md 仍包含占位内容: {pattern}")
+    return errors
 
 
 def init_git(skill_dir):
@@ -375,12 +411,12 @@ def init_git(skill_dir):
     return True
 
 
-def create_and_push(skill_dir, name, desc, github_user, public=True):
+def create_and_push(skill_dir, repo_name, desc, github_user, public=True):
     """Create GitHub repo and push."""
     visibility = "--public" if public else "--private"
 
     # Check if repo already exists
-    existing = run(f"gh repo view {github_user}/{name} --json url --jq '.url' 2>/dev/null", check=False)
+    existing = run(f"gh repo view {github_user}/{repo_name} --json url --jq '.url' 2>/dev/null", check=False)
     if existing and "github.com" in existing:
         print(f"[信息] 仓库已存在: {existing}")
         # Just push updates
@@ -391,7 +427,7 @@ def create_and_push(skill_dir, name, desc, github_user, public=True):
         # Check if remote exists
         remote = run("git remote get-url origin 2>/dev/null", cwd=skill_dir, check=False)
         if not remote:
-            run(f"git remote add origin https://github.com/{github_user}/{name}.git", cwd=skill_dir)
+            run(f"git remote add origin https://github.com/{github_user}/{repo_name}.git", cwd=skill_dir)
         run("git push -u origin main 2>&1", cwd=skill_dir, check=False)
         run("git push -u origin HEAD:main 2>&1", cwd=skill_dir, check=False)
         return existing
@@ -401,11 +437,11 @@ def create_and_push(skill_dir, name, desc, github_user, public=True):
 
     # Commit all files
     run("git add -A", cwd=skill_dir)
-    run(f'git commit -m "Initial release: {name}"', cwd=skill_dir)
+    run(f'git commit -m "Initial release: {repo_name}"', cwd=skill_dir)
 
     # Create repo and push
     result = run(
-        ["gh", "repo", "create", f"{github_user}/{name}", visibility,
+        ["gh", "repo", "create", f"{github_user}/{repo_name}", visibility,
          "--description", gh_desc, "--source", ".", "--push"],
         cwd=skill_dir, check=False
     )
@@ -416,23 +452,34 @@ def create_and_push(skill_dir, name, desc, github_user, public=True):
     return None
 
 
-def verify_skill(github_user, name):
+def verify_skill(github_user, repo_name, skill_name):
     """Verify skill is installable via npx skills.
 
-    Note: --list only checks repo reachability, not YAML validity.
-    We parse the actual output to confirm the skill name was found AND parsed.
+    Runs both --list discovery and a real install into a temporary directory.
     """
-    result = run(f"npx skills add {github_user}/{name} --list 2>&1", check=False)
+    source = f"{github_user}/{repo_name}"
+    result = run(f"npx skills add {source} --list 2>&1", check=False)
     if not result:
         return False, "npx skills 命令执行失败或超时"
     # Must see both "Found N skill" and the skill name — confirms YAML was parsed OK
-    if "Found" in result and name in result:
-        return True, None
     if "No valid skills found" in result:
         return False, "YAML 解析失败（npx skills 找不到有效 skill）— 检查 SKILL.md frontmatter"
-    if name in result:
+    if not ("Found" in result and skill_name in result):
+        return False, f"skill 名称 '{skill_name}' 未出现在 --list 输出中"
+
+    tmpdir = tempfile.mkdtemp(prefix="skill-publisher-verify-")
+    try:
+        install = run(
+            f"npx skills add {source} --skill {skill_name} 2>&1",
+            cwd=tmpdir,
+            check=False,
+        )
+        installed_skill = os.path.join(tmpdir, ".agents", "skills", skill_name, "SKILL.md")
+        if not install or not os.path.exists(installed_skill):
+            return False, "真实安装失败：临时目录中没有生成 .agents/skills/<name>/SKILL.md"
         return True, None
-    return False, f"skill 名称 '{name}' 未出现在输出中"
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def sync_agent_skill(skill_dir, name):
@@ -446,6 +493,9 @@ def sync_agent_skill(skill_dir, name):
     target_path = os.path.join(agents_dir, name)
     target = os.path.abspath(skill_dir)
     backup_path = None
+
+    if os.path.abspath(target_path) == target:
+        return "skipped", f"{target_path} 已经是当前发布源目录，跳过同步以避免自删"
 
     if os.path.islink(target_path):
         backup_path = os.readlink(target_path)
@@ -471,10 +521,11 @@ def main():
     parser = argparse.ArgumentParser(description="发布 Claude Code Skill 到 GitHub")
     parser.add_argument("skill_dir", help="Skill 目录路径")
     parser.add_argument("--github-user", help="GitHub 用户名 (默认自动获取)")
+    parser.add_argument("--repo-name", help="GitHub 仓库名 (默认优先使用当前 origin 仓库名，否则使用 skill name)")
     parser.add_argument("--private", action="store_true", help="创建私有仓库 (默认公开)")
     parser.add_argument("--dry-run", action="store_true", help="仅检查，不实际发布")
     parser.add_argument("--skip-verify", action="store_true", help="跳过 npx skills 验证")
-    parser.add_argument("--no-symlink", action="store_true", help="跳过创建 ~/.agents/skills/ symlink")
+    parser.add_argument("--no-symlink", action="store_true", help="跳过同步 ~/.agents/skills/ 实体目录")
     args = parser.parse_args()
 
     skill_dir = os.path.abspath(args.skill_dir)
@@ -498,11 +549,17 @@ def main():
         sys.exit(1)
     print("✅ gh CLI 已就绪")
 
-    github_user = args.github_user or get_github_user()
+    origin_owner, origin_repo = get_origin_repo(skill_dir)
+    github_user = args.github_user or origin_owner or get_github_user()
     if not github_user:
         print("[错误] 无法获取 GitHub 用户名", file=sys.stderr)
         sys.exit(1)
     print(f"✅ GitHub 用户: {github_user}")
+
+    repo_name = args.repo_name or origin_repo or name
+    print(f"✅ GitHub 仓库名: {repo_name}")
+    if repo_name != name:
+        print(f"ℹ️  Skill name 与仓库名不同: skill={name}, repo={repo_name}")
 
     # Step 3: Ensure LICENSE
     if ensure_license(skill_dir, github_user):
@@ -511,14 +568,22 @@ def main():
         print("✅ LICENSE 已存在")
 
     # Step 4: Generate README
-    if generate_readme(skill_dir, name, desc, github_user):
+    if generate_readme(skill_dir, name, repo_name, desc, github_user):
         print("📄 已生成 README.md")
     else:
         print("✅ README.md 已存在")
 
+    readme_errors = check_readme_quality(skill_dir)
+    if readme_errors:
+        print("❌ README 质量检查失败:")
+        for e in readme_errors:
+            print(f"   - {e}")
+        sys.exit(1)
+    print("✅ README 质量检查通过")
+
     if args.dry_run:
         print(f"\n🏁 Dry run 完成。实际发布命令:")
-        print(f"   python3 {__file__} {skill_dir}")
+        print(f"   python3 {__file__} {skill_dir} --github-user {github_user} --repo-name {repo_name}")
         return
 
     # Step 5: Git init
@@ -530,7 +595,7 @@ def main():
     # Step 6: Create repo and push
     public = not args.private
     print(f"\n🚀 发布到 GitHub ({'公开' if public else '私有'})...")
-    url = create_and_push(skill_dir, name, desc, github_user, public=public)
+    url = create_and_push(skill_dir, repo_name, desc, github_user, public=public)
     if not url:
         print("❌ 发布失败", file=sys.stderr)
         sys.exit(1)
@@ -539,9 +604,9 @@ def main():
     # Step 7: Verify
     if not args.skip_verify:
         print("\n🔎 验证 npx skills 可安装...")
-        ok, verify_err = verify_skill(github_user, name)
+        ok, verify_err = verify_skill(github_user, repo_name, name)
         if ok:
-            print("✅ 验证通过（YAML 解析正常，可安装）")
+            print("✅ 验证通过（可发现，并已在临时目录真实安装）")
         else:
             print(f"❌ 验证失败: {verify_err}", file=sys.stderr)
             print("   请检查 SKILL.md frontmatter，修复后重新运行脚本更新", file=sys.stderr)
@@ -560,7 +625,7 @@ def main():
     print(f"\n{'='*60}")
     print(f"🎉 发布成功！")
     print(f"   仓库: {url}")
-    print(f"   安装: npx skills add {github_user}/{name}")
+    print(f"   安装: npx skills add {github_user}/{repo_name}")
     print(f"{'='*60}\n")
 
 

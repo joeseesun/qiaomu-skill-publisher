@@ -1,270 +1,229 @@
 # qiaomu-skill-publisher
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-purple.svg)
+> 你已经把一个工作流沉淀成 skill，下一步最容易卡住的不是代码，而是发布：README 太像内部说明、YAML 一点点写错、仓库名发错、最后还没人验证能不能安装。
+> qiaomu-skill-publisher turns a local agent skill into a public GitHub repo with a product-style README and real `npx skills add` verification.
 
-> 一键发布 Claude Code Skill 到 GitHub，自动验证、补全文件、创建仓库、推送并验证可安装。
+<p align="center">
+  <a href="https://github.com/joeseesun/qiaomu-skill-publisher/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/joeseesun/qiaomu-skill-publisher?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/joeseesun/qiaomu-skill-publisher/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/joeseesun/qiaomu-skill-publisher?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/joeseesun/qiaomu-skill-publisher/issues"><img alt="Issues" src="https://img.shields.io/github/issues/joeseesun/qiaomu-skill-publisher?style=for-the-badge&logo=github" /></a>
+  <a href="https://github.com/joeseesun/qiaomu-skill-publisher/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/joeseesun/qiaomu-skill-publisher?style=for-the-badge&logo=git" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge" /></a>
+</p>
 
-## ✨ 核心特性
-
-- 🚀 **全自动发布**：从验证到推送，一条命令搞定
-- 🔍 **严格 YAML 校验**：发布前捕获 SKILL.md 语法错误，避免安装失败
-- 📝 **智能补全**：自动生成 LICENSE、README、.gitignore
-- ✅ **安装验证**：发布后自动验证 `npx skills add` 可用
-- 🔗 **多工具共享**：自动创建 `~/.agents/skills/` symlink，一次发布多工具可用
-
-## 📦 安装
+**中文** | [English](#english)
 
 ```bash
 npx skills add joeseesun/qiaomu-skill-publisher
 ```
 
-## 📋 前置要求
+## 为什么值得用
 
-- [x] Claude Code 已安装
-- [ ] GitHub CLI (`gh`) 已安装并登录
-  ```bash
-  brew install gh
-  gh auth login
-  ```
-- [ ] Python 3.9+ （用于运行发布脚本）
-- [ ] Skill 目录包含有效的 `SKILL.md`（含 YAML frontmatter）
+一个 skill 真正可复用，不是本地能跑就结束。
 
-## 🚀 快速开始
+它还需要：
 
-安装后，在 Claude Code 中用自然语言描述你的需求即可。
+- GitHub 仓库能被别人找到
+- README 第一眼让人想装
+- `SKILL.md` frontmatter 能被严格 YAML 解析
+- 安装命令一行可用
+- 发布后真的能通过 `npx skills add` 发现和安装
+- 本地 `.agents`、`.codex`、`.claude` 入口别互相打架
 
-### 💡 使用场景
+qiaomu-skill-publisher 把这些发布步骤打包成一个可验证流程。
 
-**场景 1：发布新 skill**
-```
-你说："把 yt-search-download 这个 skill 发布到 GitHub"
-AI 做：
-  1. 验证 SKILL.md 的 YAML frontmatter
-  2. 检查 gh CLI 状态
-  3. 自动生成 LICENSE 和 README（如果缺少）
-  4. 创建 GitHub 公开仓库
-  5. 推送代码并验证可安装
-  6. 返回仓库 URL 和安装命令
-```
+## 它会做什么
 
-**场景 2：更新已发布的 skill**
-```
-你说："更新 skill-publisher 的 README"
-AI 做：
-  1. 检测到仓库已存在
-  2. 提交更新并推送
-  3. 验证更新成功
-```
+- 验证 `SKILL.md` 的 `name` 和 `description`
+- 用 PyYAML 做严格 frontmatter 检查
+- 创建 MIT LICENSE
+- 生成不带 TODO 占位符的 README 发布页
+- 检查已有 README 是否还残留占位内容
+- 区分 `skill name` 和 GitHub `repo name`
+- 优先使用当前 git `origin` 仓库名，避免推错 repo
+- 创建或更新 GitHub 公开仓库
+- 跑 `npx skills add <user>/<repo> --list`
+- 在临时目录真实安装一次，确认 `SKILL.md` 落盘
+- 可把 skill 同步到 `~/.agents/skills/<name>` 实体目录
 
-**场景 3：发布前检查**
-```
-你说："检查一下这个 skill 能不能发布"
-AI 做：
-  1. 运行 --dry-run 模式
-  2. 验证 YAML 语法
-  3. 检查必需文件
-  4. 报告潜在问题（不实际发布）
+## 快速开始
+
+发布一个 skill：
+
+```bash
+python3 ~/.agents/skills/qiaomu-skill-publisher/scripts/publish_skill.py ~/.agents/skills/my-skill
 ```
 
-## 🏗️ 工作原理
+先检查，不发布：
+
+```bash
+python3 ~/.agents/skills/qiaomu-skill-publisher/scripts/publish_skill.py ~/.agents/skills/my-skill --dry-run
+```
+
+skill name 和仓库名不一致时，明确仓库名：
+
+```bash
+python3 ~/.agents/skills/qiaomu-skill-publisher/scripts/publish_skill.py ~/.agents/skills/qiaomu-skill-publisher --repo-name qiaomu-skill-publisher --no-symlink
+```
+
+发布后用户安装：
+
+```bash
+npx skills add joeseesun/my-skill
+```
+
+## 你可以这样说
+
+- “把这个 skill 发布到 GitHub。”
+- “先检查这个 skill 能不能发布。”
+- “重写 README，让它更吸引人，然后发布。”
+- “更新 qiaomu-goal-meta-skill 到 GitHub，并验证可安装。”
+- “这个 skill name 和 repo name 不一样，发布到 qiaomu-skill-publisher。”
+
+## 发布流程
 
 ```mermaid
-graph LR
-    A[用户: 发布 skill] --> B[验证 SKILL.md]
-    B --> C{YAML 合法?}
-    C -->|否| D[报错 + 修复建议]
-    C -->|是| E[补全文件]
-    E --> F[创建 GitHub 仓库]
-    F --> G[推送代码]
-    G --> H[验证 npx skills]
-    H --> I[创建 ~/.agents/skills/ symlink]
-    I --> J[返回安装命令]
+flowchart LR
+  A["本地 skill 目录"] --> B["验证 SKILL.md"]
+  B --> C["检查 README 质量"]
+  C --> D["识别 repo name"]
+  D --> E["提交并推送 GitHub"]
+  E --> F["npx --list 发现验证"]
+  F --> G["临时目录真实安装"]
+  G --> H["输出仓库和安装命令"]
 ```
 
-## 📖 详细使用
+## README 发布页标准
 
-### 发布流程
+这个 publisher 的经验来自多次 qiaomu skill 发布，尤其是 `qiaomu-goal-meta-skill` 的 README 重写。
 
-当用户要求发布 skill 时，AI 会自动运行：
+好 README 不只是“说明功能”。
 
-```bash
-python3 ~/.claude/skills/qiaomu-skill-publisher/scripts/publish_skill.py <skill_dir>
-```
+它要让陌生人愿意安装。
 
-### 脚本自动完成的步骤
+推荐首屏：
 
-1. **验证** SKILL.md 的 YAML frontmatter（name + description）
-2. **检查** gh CLI 就绪状态
-3. **创建** LICENSE（MIT，如果缺少）
-4. **生成** README.md（从 SKILL.md 提取，如果缺少）
-5. **初始化** git（如果需要）
-6. **创建** GitHub 公开仓库并推送
-7. **验证** `npx skills add` 可发现
-8. **创建** `~/.agents/skills/<name>` symlink（多工具共享）
+1. 痛点：用户现在为什么难受
+2. 翻转：用了这个 skill 之后有什么不同
+3. 一行安装命令
+4. 真实输出样例或工作流片段
+5. 3-6 个具体能力点
+6. 前置要求和 Troubleshooting
+7. 作者、版权、风险边界
 
-### 参数选项
+脚本会拦截这些坏味道：
+
+- `TODO`
+- `特性 1`
+- `[问题 1]`
+- `[解决方案]`
+- `your-org`
+- `your-repo`
+- 未替换的 `product-screenshot.png`
+
+## 参数
 
 | 参数 | 说明 |
-|------|------|
-| `--private` | 创建私有仓库（默认公开） |
-| `--dry-run` | 仅检查，不实际发布 |
-| `--skip-verify` | 跳过 npx skills 验证 |
-| `--github-user USER` | 指定 GitHub 用户名（默认自动获取） |
-| `--no-symlink` | 跳过创建 `~/.agents/skills/` symlink |
+|---|---|
+| `--github-user USER` | 指定 GitHub 用户名；默认优先使用当前 origin owner，否则使用 `gh api user` |
+| `--repo-name NAME` | 指定 GitHub 仓库名；默认优先使用当前 origin repo，否则使用 skill name |
+| `--private` | 创建私有仓库，默认公开 |
+| `--dry-run` | 只检查，不发布 |
+| `--skip-verify` | 跳过 `npx skills` 验证 |
+| `--no-symlink` | 跳过同步 `~/.agents/skills` 实体目录 |
 
-### 自动创建 ~/.agents/skills/ Symlink
+## 前置要求
 
-发布成功后，脚本自动在 `~/.agents/skills/<name>` 创建指向 skill 目录的 symlink。
+- [ ] 已安装 GitHub CLI：`brew install gh`
+- [ ] 已登录 GitHub CLI：`gh auth status`
+- [ ] 已安装 Python 3.9+
+- [ ] 已安装 Node.js 和 `npx`
+- [ ] skill 目录包含有效 `SKILL.md`
+- [ ] 发布前已检查 README 中没有密钥、私有路径、账号信息或未替换占位符
 
-这个目录是通用 Agent Skills 标准目录，以下工具会自动读取：
-- OpenCode
-- Codex CLI
-- Cursor
-- Gemini CLI
-- GitHub Copilot
-- Amp
-- Cline
-- Warp
+## 关键细节
 
-**一次发布，多工具共享，无需重复配置。**
+### repo name 和 skill name 可以不同
 
-## ⚠️ SKILL.md YAML 安全规则
+例如这个仓库是 `qiaomu-skill-publisher`，但 `SKILL.md` 里的 name 是 `skill-publisher`。
 
-`npx skills` 使用严格 YAML 解析器，以下写法会导致安装失败（报 "No valid skills found"）：
+脚本会优先读取当前 git `origin`，避免把更新误推到 `joeseesun/skill-publisher`。
 
-| ❌ 错误写法 | ✅ 正确写法 |
-|-----------|-----------|
-| `description: 含有 "引号" 的文字` | 改用 `\|` 块标量（见下方） |
-| `description: 含单引号'的文字` | 改用 `\|` 块标量 |
-| `description: 含冒号: 的文字` | 改用 `\|` 块标量 |
+必要时使用：
 
-**最安全的 description 写法**：
-```yaml
----
-name: skill-name
-description: |
-  描述放这里，可以随意包含 "双引号"、'单引号'、冒号: 等特殊字符
-  触发词: 用户说...时触发
----
+```bash
+--repo-name qiaomu-skill-publisher
 ```
 
-脚本已内置 YAML 严格校验（pyyaml），会在发布前捕获这类错误并给出修复提示。
+### 验证不是只看 --list
 
-## 📝 README 质量检查清单
+脚本会先跑：
 
-**脚本只在 README 不存在时自动生成一个基础模板**。发布前，必须人工检查/撰写 README，确保它对陌生用户有价值。
+```bash
+npx skills add <user>/<repo> --list
+```
 
-### README 必须包含的要素
+然后在临时目录真实安装：
 
-- [ ] **价值主张**：第一段说清楚能解决什么问题
-- [ ] **首屏证据**：产品截图、输出样例、真实生成物或短 Demo 放在第一屏附近
-- [ ] **动态可信信号**：GitHub stars、forks、issues、last commit、license、deploy/install 按钮放在顶部
-- [ ] **前置条件清单**：checkbox 格式，每条说明怎么装
-- [ ] **完整安装步骤**：编号步骤，每步有验证命令
-- [ ] **自然语言使用示例**：2-3 个用户真实会说的句子
-- [ ] **致谢原作者**：基于第三方工具时必须注明
-- [ ] **风险/限制说明**：写操作、账号、费用相关的风险
-- [ ] **常见问题/Troubleshooting**：至少 3 个常见报错和解决方法
+```bash
+npx skills add <user>/<repo> --skill <skill-name>
+```
 
-### Web 项目发布页标准
+确认 `.agents/skills/<skill-name>/SKILL.md` 真实落盘后才算过。
 
-参考 `nexu-io/open-design` 这类高转化 README，Web 项目要像产品发布页一样给用户一个可判断的首屏，而不是只给安装命令。
+### 本地同步不会自删
 
-推荐首屏顺序：
+如果发布源目录已经是 `~/.agents/skills/<name>`，脚本会跳过同步，避免删除自己的源目录。
 
-1. 项目名 + 一句话 Hook
-2. 主要 CTA：`Deploy with Vercel` / Live Demo / Install，按钮使用真实仓库 URL
-3. GitHub 动态徽章：stars、forks、issues、last commit、license、build 状态
-4. 产品截图：`docs/assets/product-screenshot.png`
-5. 3-6 个核心功能点
+如果你从一个仓库名和 skill name 不一致的目录发布，并且不想产生本地副本，用：
 
-Web 项目必须优先补齐：
+```bash
+--no-symlink
+```
 
-- [ ] `docs/assets/product-screenshot.png`：首屏或核心工作流截图
-- [ ] `docs/assets/` 下的样例输出：例如图片生成网站放 3-6 个代表性生成图
-- [ ] README 中的样例表格：展示输入、输出、关键差异或使用场景
-- [ ] `scripts/capture-screenshots.*` 或等价命令：本地启动网站后自动刷新 README 截图
-- [ ] 部署说明：Vercel/Netlify/Docker 等入口必须使用真实仓库 URL 和最少步骤
-- [ ] Star History：适合公开传播的项目可加入 `api.star-history.com` 图表
-
-推荐 README 模块：
-
-```markdown
-# Project Name
-
-> 一句话说明用户会得到什么。
-
-[Deploy with Vercel] [Live Demo] [Stars] [Forks] [Last commit] [License]
-
-<img src="docs/assets/product-screenshot.png" alt="..." />
-
-## 为什么值得用
-## 样例输出
-## 一键部署
-## 本地开发
-## 自动更新截图
-## 数据/生成流程
-## Star History
 ## Troubleshooting
-```
 
-自动截图要求：
+| 问题 | 原因 | 解决方法 |
+|---|---|---|
+| `gh: command not found` | 没装 GitHub CLI | 运行 `brew install gh && gh auth login` |
+| `No valid skills found` | `SKILL.md` frontmatter 不是严格 YAML | 用 `description: |` 块标量，重新发布 |
+| 发布到了错误仓库 | skill name 和 repo name 混用 | 检查 `git remote -v`，或传 `--repo-name` |
+| README 质量检查失败 | 还残留 TODO 或占位符 | 把 README 改成真实痛点、样例和安装说明 |
+| npx 真实安装失败 | repo 可见但 skill 未正确解析或路径不对 | 先跑 `--list` 看 skill name，再检查 `SKILL.md` |
+| 本地出现重复 skill | 自动同步创建了实体副本 | 下次发布用 `--no-symlink`，或清理不需要的副本 |
 
-- 有前端 UI 的项目，优先用 Playwright/Puppeteer 生成 README 截图，不手工截屏
-- 截图脚本应允许通过环境变量指定 URL，例如 `SCREENSHOT_URL=http://127.0.0.1:3000 npm run capture:screenshots`
-- 截图文件放进 `docs/assets/`，README 使用相对路径引用
-- 截图脚本是发布资产生成，不等同于完整 E2E 测试
-
-## ❓ 常见问题
-
-### Q: 发布失败，提示 "gh: command not found"
-**A:** 需要先安装 GitHub CLI：
-```bash
-brew install gh
-gh auth login
-```
-
-### Q: YAML 解析错误，提示 "No valid skills found"
-**A:** 检查 SKILL.md 的 frontmatter，使用块标量避免特殊字符：
-```yaml
-description: |
-  这里可以随意写 "引号" 和 冒号:
-```
-
-### Q: 仓库已存在，如何更新？
-**A:** 再次运行同一命令，脚本会自动检测并推送更新：
-```bash
-python3 ~/.claude/skills/qiaomu-skill-publisher/scripts/publish_skill.py <skill_dir>
-```
-
-### Q: 如何发布私有仓库？
-**A:** 添加 `--private` 参数：
-```bash
-python3 ~/.claude/skills/qiaomu-skill-publisher/scripts/publish_skill.py <skill_dir> --private
-```
-
-### Q: 验证失败，但仓库已创建怎么办？
-**A:** 修复 SKILL.md 后重新运行，脚本会自动更新仓库。或使用 `--skip-verify` 跳过验证。
-
-## 🔒 隐私说明
-
-- **本地处理**：所有文件验证和生成在本地完成
-- **外部调用**：仅通过 `gh` CLI 与 GitHub API 交互（创建仓库、推送代码）
-- **数据安全**：不上传任何敏感信息，遵循 GitHub 标准权限控制
-
-## 📝 License
+## License
 
 MIT
 
-## 📱 关注作者
+Copyright (c) 向阳乔木  
+X: https://x.com/vista8  
+GitHub: https://github.com/joeseesun/
 
-如果这个项目对你有帮助，欢迎关注我获取更多 AI 工具分享：
+<a name="english"></a>
+## English
 
-- **X (Twitter)**: [@vista8](https://x.com/vista8)
-- **微信公众号「向阳乔木推荐看」**:
+qiaomu-skill-publisher publishes a local agent skill to GitHub and verifies that it can be discovered and installed through `npx skills add`.
 
-<p align="center">
-  <img src="https://github.com/joeseesun/terminal-boost/raw/main/assets/wechat-qr.jpg?raw=true" alt="向阳乔木推荐看公众号二维码" width="300">
-</p>
+Install:
+
+```bash
+npx skills add joeseesun/qiaomu-skill-publisher
+```
+
+It focuses on:
+
+- strict `SKILL.md` YAML validation
+- attractive product-page README generation
+- README placeholder checks
+- repo-name and skill-name separation
+- GitHub repo creation or update
+- `npx skills add --list` discovery verification
+- real install verification in a temporary directory
+- safe local `~/.agents/skills` sync
+
+Author:
+
+Copyright (c) 向阳乔木  
+X: https://x.com/vista8  
+GitHub: https://github.com/joeseesun/
